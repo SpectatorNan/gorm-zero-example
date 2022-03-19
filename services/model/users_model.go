@@ -5,6 +5,7 @@ import (
 	"github.com/SpectatorNan/gorm-zero/gormc"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"gorm.io/gorm"
+	"time"
 )
 
 var (
@@ -38,7 +39,7 @@ func (u *Users) TableName() string {
 func NewUsersModel(conn *gorm.DB, c cache.CacheConf) UsersModel {
 	return &defaultUsersModel{
 		CachedConn: gormc.NewConn(conn, c, func(o *cache.Options) {
-			o.NotFoundExpiry = 60
+			o.NotFoundExpiry = time.Hour
 		}),
 	}
 }
