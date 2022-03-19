@@ -1,0 +1,52 @@
+syntax = "v1"
+
+info(
+	title: "gormc example"
+	desc: "gorm go zero example"
+	author: "spectatorNan"
+	version: "1.0.0"
+)
+
+type (
+	AddUserReq {
+		Account  string `json:"account"`
+		Password string `json:"password"`
+		NickName string `json:"nickName"`
+	}
+	AddUserResp {
+		Id int64 `json:"id"`
+	}
+
+	QueryUserReq {
+		Id int64 `path:"id"`
+	}
+	QueryUserResp {
+		Id         int64  `json:"id"`
+		Account    string `json:"account"`
+		NickName   string `json:"nickName"`
+		CreateTime string `json:"createTime"`
+	}
+
+	UpdateUserReq {
+		Id       int64  `json:"id"`
+		NickName string `json:"nickName"`
+	}
+
+	DeleteUserReq {
+		Id int64 `json:"id"`
+	}
+)
+
+service User {
+	@handler queryUser
+	get /users/id/:id (QueryUserReq) returns (QueryUserResp)
+	
+	@handler addUser
+	post /users/add (AddUserReq) returns (AddUserResp)
+	
+	@handler updateUser
+	post /users/update (UpdateUserReq)
+	
+	@handler delUser
+	post /users/del (DeleteUserReq)
+}

@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	cachePublicUsersIdPrefix = "cache:public:users:id:"
+	cachePublicUsersIdPrefix = "gormc:cache:public:users:id:"
 )
 
 type (
@@ -20,7 +20,6 @@ type (
 	}
 
 	Users struct {
-		Id       int64
 		Account  string
 		NickName string
 		Password string
@@ -32,14 +31,20 @@ type (
 	}
 )
 
+func (u *Users) TableName() string {
+	return "users"
+}
+
 func NewUsersModel(conn *gorm.DB, c cache.CacheConf) UsersModel {
 	return &defaultUsersModel{
-		CachedConn: gormc.NewConn(conn, c),
+		CachedConn: gormc.NewConn(conn, c, func(o *cache.Options) {
+			o.NotFoundExpiry = 60
+		}),
 	}
 }
 
 func (m *defaultUsersModel) Insert(data *Users) error {
-	publicUsersIdKey := fmt.Sprintf("%s%v", cachePublicUsersIdPrefix, data.Id)
+	publicUsersIdKey := fmt.Sprintf("%s%v", cachePublicUsersIdPrefix, data.ID)
 
 	err := m.Exec(func(conn *gorm.DB) *gorm.DB {
 		return conn.Save(data)
@@ -65,7 +70,7 @@ func (m *defaultUsersModel) FindOne(id int64) (*Users, error) {
 }
 
 func (m *defaultUsersModel) Update(data *Users) error {
-	publicUsersIdKey := fmt.Sprintf("%s%v", cachePublicUsersIdPrefix, data.Id)
+	publicUsersIdKey := fmt.Sprintf("%s%v", cachePublicUsersIdPrefix, data.ID)
 	err := m.Exec(func(conn *gorm.DB) *gorm.DB {
 		return conn.Save(data)
 	}, publicUsersIdKey)
