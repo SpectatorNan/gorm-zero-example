@@ -54,6 +54,15 @@ func (m *defaultUsersModel) Insert(data *Users) error {
 	return err
 }
 
+func (m *defaultUsersModel) InsertWithoutCache(data *Users) error {
+
+	err := m.ExecNoCache(func(conn *gorm.DB) *gorm.DB {
+		return conn.Save(data)
+	})
+
+	return err
+}
+
 func (m *defaultUsersModel) FindOne(id int64) (*Users, error) {
 	publicUsersIdKey := fmt.Sprintf("%s%v", cachePublicUsersIdPrefix, id)
 	var resp Users
@@ -122,6 +131,14 @@ func (m *defaultUsersModel) Update(data *Users) error {
 	err := m.Exec(func(conn *gorm.DB) *gorm.DB {
 		return conn.Save(data)
 	}, publicUsersIdKey)
+	return err
+}
+
+func (m *defaultUsersModel) UpdateWithoutCache(data *Users) error {
+
+	err := m.ExecNoCache(func(conn *gorm.DB) *gorm.DB {
+		return conn.Save(data)
+	})
 	return err
 }
 
