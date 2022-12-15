@@ -1,0 +1,27 @@
+
+### Send Add User
+POST {{baseUrl}}/users/add
+Content-Type: application/json
+
+{
+  "account": "RibonAccount",
+  "password": "hkKJlldfhj2q3",
+  "nickName": "Ribon"
+}
+
+### Send Query User
+GET {{baseUrl}}/users/1
+Content-Type: application/json
+
+### Send Update User
+POST {{baseUrl}}/users/update
+Content-Type: application/json
+
+{
+  "id": 1,
+  "nickName": "RibonUpdate"
+}
+
+### Send Query User
+DELETE {{baseUrl}}/users/1
+Content-Type: application/json

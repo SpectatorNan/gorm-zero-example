@@ -14,7 +14,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/users/id/:id",
+				Path:    "/users/:id",
 				Handler: queryUserHandler(serverCtx),
 			},
 			{
@@ -28,8 +28,8 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: updateUserHandler(serverCtx),
 			},
 			{
-				Method:  http.MethodPost,
-				Path:    "/users/del",
+				Method:  http.MethodDelete,
+				Path:    "/users/:id",
 				Handler: delUserHandler(serverCtx),
 			},
 		},

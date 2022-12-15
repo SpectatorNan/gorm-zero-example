@@ -1,10 +1,11 @@
 Name: User
 Host: 0.0.0.0
-Port: 8888
-
+Port: 5888
+Timeout: 20000
+Log:
+  Encoding: plain
 Mysql:
-  Dsn: root:root@tcp(127.0.0.1:8889)/gormzero?charset=utf8mb4&parseTime=True&loc=Local
+  Dsn: root:root@tcp(127.0.0.1:3306)/gormzero?charset=utf8mb4&parseTime=True&loc=Local
 
 CacheRedis:
   - Host: localhost:6379
-    Type: node

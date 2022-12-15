@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"database/sql"
 	"gorm-zero-example/services/api/internal/svc"
 	"gorm-zero-example/services/api/internal/types"
 	"gorm-zero-example/services/model"
@@ -27,15 +28,24 @@ func (l *AddUserLogic) AddUser(req types.AddUserReq) (resp *types.AddUserResp, e
 	// todo: add your logic here and delete this line
 
 	u := model.Users{
-		Account:  req.Account,
-		NickName: req.NickName,
-		Password: req.Password,
+		Account: sql.NullString{
+			String: req.Account,
+			Valid:  true,
+		},
+		NickName: sql.NullString{
+			String: req.NickName,
+			Valid:  true,
+		},
+		Password: sql.NullString{
+			String: req.Password,
+			Valid:  true,
+		},
 	}
 
-	err = l.svcCtx.UserModel.Insert(&u)
+	err = l.svcCtx.UserModel.Insert(l.ctx, nil, &u)
 	if err != nil {
 		return nil, err
 	}
-	resp = &types.AddUserResp{Id: int64(u.ID)}
+	resp = &types.AddUserResp{Id: u.Id}
 	return
 }

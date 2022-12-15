@@ -26,7 +26,7 @@ func NewDelUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) DelUserLog
 func (l *DelUserLogic) DelUser(req types.DeleteUserReq) error {
 	// todo: add your logic here and delete this line
 
-	err := l.svcCtx.UserModel.Delete(int64(req.Id))
+	err := l.svcCtx.UserModel.Delete(l.ctx, nil, req.Id)
 
 	return err
 }

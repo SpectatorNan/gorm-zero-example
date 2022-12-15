@@ -28,5 +28,5 @@ type UpdateUserReq struct {
 }
 
 type DeleteUserReq struct {
-	Id int64 `json:"id"`
+	Id int64 `path:"id"`
 }
