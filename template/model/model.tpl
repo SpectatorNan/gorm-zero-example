@@ -30,6 +30,7 @@ type (
     	}
 )
 {{ if or (.gormCreatedAt) (.gormUpdatedAt) }}
+// BeforeCreate hook create time
 func (s *{{.upperStartCamelObject}}) BeforeCreate(tx *gorm.DB) error {
 	now := time.Now()
 	{{ if .gormCreatedAt }}s.CreatedAt = now{{ end }}
@@ -38,6 +39,7 @@ func (s *{{.upperStartCamelObject}}) BeforeCreate(tx *gorm.DB) error {
 }
 {{ end }}
 {{ if .gormUpdatedAt}}
+// BeforeUpdate hook update time
 func (s *{{.upperStartCamelObject}}) BeforeUpdate(tx *gorm.DB) error {
 	s.UpdatedAt = time.Now()
 	return nil

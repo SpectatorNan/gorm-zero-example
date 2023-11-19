@@ -139,7 +139,3 @@ func (m *defaultUsersModel) formatPrimary(primary interface{}) string {
 func (m *defaultUsersModel) queryPrimary(conn *gorm.DB, v, primary interface{}) error {
 	return conn.Model(&Users{}).Where("`id` = ?", primary).Take(v).Error
 }
-
-func (m *defaultUsersModel) tableName() string {
-	return m.table
-}

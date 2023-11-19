@@ -28,10 +28,6 @@ type (
 	}
 )
 
-var (
-	cacheGormzeroUsersIdExpirePrefix = "cache:gormzero:users:id:expire:"
-)
-
 // NewUsersModel returns a model for the database table.
 func NewUsersModel(conn *gorm.DB, c cache.CacheConf) UsersModel {
 	return &customUsersModel{
@@ -39,12 +35,19 @@ func NewUsersModel(conn *gorm.DB, c cache.CacheConf) UsersModel {
 	}
 }
 
+var (
+	cacheGormzeroUsersIdExpirePrefix = "cache:gormzero:users:id:expire:"
+)
+
 func (m *defaultUsersModel) customCacheKeys(data *Users) []string {
 	if data == nil {
 		return []string{}
 	}
-	return []string{}
+	return []string{
+		fmt.Sprintf("%s%v", cacheGormzeroUsersIdExpirePrefix, data.Id),
+	}
 }
+
 func (m *customUsersModel) FindOneWithExpire(ctx context.Context, id int64, expire time.Duration) (*Users, error) {
 	gormzeroUsersIdKey := fmt.Sprintf("%s%v", cacheGormzeroUsersIdExpirePrefix, id)
 	var resp Users

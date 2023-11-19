@@ -1,7 +1,7 @@
 package svc
 
 import (
-	"github.com/SpectatorNan/gorm-zero/gormc"
+	"github.com/SpectatorNan/gorm-zero/gormc/config/mysql"
 	"gorm-zero-example/services/api/internal/config"
 	"gorm-zero-example/services/model"
 	"log"
@@ -14,7 +14,7 @@ type ServiceContext struct {
 
 func NewServiceContext(c config.Config) *ServiceContext {
 
-	db, err := gormc.ConnectMysql(c.Mysql)
+	db, err := mysql.Connect(c.Mysql)
 	if err != nil {
 		log.Fatal(err)
 	}
