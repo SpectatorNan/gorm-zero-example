@@ -7,10 +7,10 @@ Log:
 
 Mysql:
   Path: 127.0.0.1
-  Port: "3306"
+  Port: 3306
   Dbname: gormzero
   Username: root
-  Password: localpwd
+  Password: root
   MaxIdleConns: 10
   MaxOpenConns: 10
   LogMode: "dev"
