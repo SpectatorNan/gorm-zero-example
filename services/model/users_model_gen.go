@@ -4,6 +4,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"database/sql"
@@ -70,7 +71,7 @@ func (m *defaultUsersModel) Insert(ctx context.Context, tx *gorm.DB, data *Users
 func (m *defaultUsersModel) FindOne(ctx context.Context, id int64) (*Users, error) {
 	gormzeroUsersIdKey := fmt.Sprintf("%s%v", cacheGormzeroUsersIdPrefix, id)
 	var resp Users
-	err := m.QueryCtx(ctx, &resp, gormzeroUsersIdKey, func(conn *gorm.DB, v interface{}) error {
+	err := m.QueryCtx(ctx, &resp, gormzeroUsersIdKey, func(conn *gorm.DB) error {
 		return conn.Model(&Users{}).Where("`id` = ?", id).First(&resp).Error
 	})
 	switch err {
@@ -85,7 +86,7 @@ func (m *defaultUsersModel) FindOne(ctx context.Context, id int64) (*Users, erro
 
 func (m *defaultUsersModel) Update(ctx context.Context, tx *gorm.DB, data *Users) error {
 	old, err := m.FindOne(ctx, data.Id)
-	if err != nil && err != ErrNotFound {
+	if err != nil && errors.Is(err, ErrNotFound) {
 		return err
 	}
 	err = m.ExecCtx(ctx, func(conn *gorm.DB) error {

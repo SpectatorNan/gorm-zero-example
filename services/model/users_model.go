@@ -51,7 +51,7 @@ func (m *defaultUsersModel) customCacheKeys(data *Users) []string {
 func (m *customUsersModel) FindOneWithExpire(ctx context.Context, id int64, expire time.Duration) (*Users, error) {
 	gormzeroUsersIdKey := fmt.Sprintf("%s%v", cacheGormzeroUsersIdExpirePrefix, id)
 	var resp Users
-	err := m.QueryWithExpireCtx(ctx, &resp, gormzeroUsersIdKey, expire, func(conn *gorm.DB, v interface{}) error {
+	err := m.QueryWithExpireCtx(ctx, &resp, gormzeroUsersIdKey, expire, func(conn *gorm.DB) error {
 		return conn.Model(&Users{}).Where("`id` = ?", id).First(&resp).Error
 	})
 	switch err {

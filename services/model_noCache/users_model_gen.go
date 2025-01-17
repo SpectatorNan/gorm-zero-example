@@ -6,19 +6,24 @@ import (
 	"context"
 	"database/sql"
 	"github.com/SpectatorNan/gorm-zero/gormc"
+	"time"
 
+	"github.com/SpectatorNan/gorm-zero/gormc/pagex"
 	"gorm.io/gorm"
 )
 
 type (
 	usersModel interface {
 		Insert(ctx context.Context, tx *gorm.DB, data *Users) error
-
+		BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error
 		FindOne(ctx context.Context, id int64) (*Users, error)
+		FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
+			orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]Users, int64, error)
 		Update(ctx context.Context, tx *gorm.DB, data *Users) error
+		BatchUpdate(ctx context.Context, tx *gorm.DB, olds, news []Users) error
+		BatchDelete(ctx context.Context, tx *gorm.DB, datas []Users) error
 
 		Delete(ctx context.Context, tx *gorm.DB, id int64) error
-		Transaction(ctx context.Context, fn func(db *gorm.DB) error) error
 	}
 
 	defaultUsersModel struct {
@@ -27,13 +32,13 @@ type (
 	}
 
 	Users struct {
-		Id       int64          `gorm:"column:id"`
-		Account  sql.NullString `gorm:"column:account"`
-		NickName sql.NullString `gorm:"column:nick_name"`
-		Password sql.NullString `gorm:"column:password"`
-		CreateAt sql.NullTime   `gorm:"column:create_at"`
-		UpdateAt sql.NullTime   `gorm:"column:update_at"`
-		DeleteAt sql.NullTime   `gorm:"column:delete_at"`
+		Id        int64          `gorm:"column:id;primary_key"`
+		Account   sql.NullString `gorm:"column:account"`
+		NickName  sql.NullString `gorm:"column:nick_name"`
+		Password  sql.NullString `gorm:"column:password"`
+		CreatedAt time.Time      `gorm:"column:created_at"`
+		UpdatedAt time.Time      `gorm:"column:updated_at"`
+		DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index"`
 	}
 )
 
@@ -53,7 +58,15 @@ func (m *defaultUsersModel) Insert(ctx context.Context, tx *gorm.DB, data *Users
 	if tx != nil {
 		db = tx
 	}
-	err := db.WithContext(ctx).Save(&data).Error
+	err := db.WithContext(ctx).Create(&data).Error
+	return err
+}
+func (m *defaultUsersModel) BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error {
+	db := m.conn
+	if tx != nil {
+		db = tx
+	}
+	err := db.Create(&news).Error
 	return err
 }
 
@@ -69,6 +82,20 @@ func (m *defaultUsersModel) FindOne(ctx context.Context, id int64) (*Users, erro
 		return nil, err
 	}
 }
+func (m *defaultUsersModel) FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
+	orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]Users, int64, error) {
+	conn := m.conn
+	formatDB := func() (*gorm.DB, *gorm.DB) {
+		db := conn.Model(&Users{})
+		if whereClause != nil {
+			db = whereClause(db)
+		}
+		return db, nil
+	}
+
+	res, total, err := pagex.FindPageListWithCount[Users](ctx, page, orderBy, orderKeys, formatDB)
+	return res, total, err
+}
 
 func (m *defaultUsersModel) Update(ctx context.Context, tx *gorm.DB, data *Users) error {
 	db := m.conn
@@ -76,6 +103,15 @@ func (m *defaultUsersModel) Update(ctx context.Context, tx *gorm.DB, data *Users
 		db = tx
 	}
 	err := db.WithContext(ctx).Save(data).Error
+	return err
+}
+func (m *defaultUsersModel) BatchUpdate(ctx context.Context, tx *gorm.DB, olds, news []Users) error {
+	db := m.conn
+	if tx != nil {
+		db = tx
+	}
+	err := db.WithContext(ctx).Save(&news).Error
+
 	return err
 }
 
@@ -89,6 +125,11 @@ func (m *defaultUsersModel) Delete(ctx context.Context, tx *gorm.DB, id int64) e
 	return err
 }
 
-func (m *defaultUsersModel) Transaction(ctx context.Context, fn func(db *gorm.DB) error) error {
-	return m.conn.WithContext(ctx).Transaction(fn)
+func (m *defaultUsersModel) BatchDelete(ctx context.Context, tx *gorm.DB, datas []Users) error {
+	db := m.conn
+	if tx != nil {
+		db = tx
+	}
+	err := db.Delete(&datas).Error
+	return err
 }
