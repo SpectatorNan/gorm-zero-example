@@ -51,6 +51,7 @@ func New{{.upperStartCamelObject}}Model(conn *gorm.DB{{if .withCache}}, c cache.
 		default{{.upperStartCamelObject}}Model: new{{.upperStartCamelObject}}Model(conn{{if .withCache}}, c{{end}}),
 	}
 }
+{{if .withCache}}
 
 func (m *default{{.upperStartCamelObject}}Model) customCacheKeys(data *{{.upperStartCamelObject}}) []string {
     if data == nil {
@@ -58,3 +59,4 @@ func (m *default{{.upperStartCamelObject}}Model) customCacheKeys(data *{{.upperS
     }
 	return []string{}
 }
+{{ end }}

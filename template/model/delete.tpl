@@ -2,7 +2,7 @@
 func (m *default{{.upperStartCamelObject}}Model) Delete(ctx context.Context, tx *gorm.DB, {{.lowerStartCamelPrimaryKey}} {{.dataType}}) error {
 	{{if .withCache}}data, err:=m.FindOne(ctx, {{.lowerStartCamelPrimaryKey}})
 	if err!=nil{
-        if err == ErrNotFound {
+        if errors.Is(err, ErrNotFound) {
                 return nil
         }
 		return err
@@ -13,7 +13,7 @@ func (m *default{{.upperStartCamelObject}}Model) Delete(ctx context.Context, tx 
             db = tx
         }
         return db.Delete(&{{.upperStartCamelObject}}{}, {{.lowerStartCamelPrimaryKey}}).Error
-	}, m.getCacheKeys(data)...){{else}} db := m.conn
+	}, m.GetCacheKeys(data)...){{else}} db := m.conn
         if tx != nil {
             db = tx
         }
@@ -22,6 +22,18 @@ func (m *default{{.upperStartCamelObject}}Model) Delete(ctx context.Context, tx 
 	return err
 }
 
-func (m *default{{.upperStartCamelObject}}Model) Transaction(ctx context.Context, fn func(db *gorm.DB) error) error {
-    {{if .withCache}}return m.TransactCtx(ctx, fn){{else}} return m.conn.WithContext(ctx).Transaction(fn){{end}}
+func (m *default{{.upperStartCamelObject}}Model) BatchDelete(ctx context.Context, tx *gorm.DB, datas []{{.upperStartCamelObject}}) error {
+	{{if .withCache}}err := batchx.BatchExecCtx(ctx, m, datas, func(conn *gorm.DB) error {
+	db := conn
+            if tx != nil {
+                db = tx
+            }
+            return db.Delete(&datas).Error
+    	}){{else}}db := conn
+        if tx != nil {
+            db = tx
+        }
+        err := db.Delete(&datas).Error{{end}}
+	return err
 }
+
