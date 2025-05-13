@@ -6,7 +6,8 @@ import (
 	"context"
 	"database/sql"
 	"github.com/SpectatorNan/gorm-zero/gormc"
-	"time"
+	"github.com/SpectatorNan/gorm-zero/gormc/batchx"
+	"github.com/SpectatorNan/gorm-zero/gormc/conn"
 
 	"github.com/SpectatorNan/gorm-zero/gormc/pagex"
 	"gorm.io/gorm"
@@ -27,7 +28,7 @@ type (
 	}
 
 	defaultUsersModel struct {
-		conn  *gorm.DB
+		gormc.Conn
 		table string
 	}
 
@@ -36,8 +37,8 @@ type (
 		Account   sql.NullString `gorm:"column:account"`
 		NickName  sql.NullString `gorm:"column:nick_name"`
 		Password  sql.NullString `gorm:"column:password"`
-		CreatedAt time.Time      `gorm:"column:created_at"`
-		UpdatedAt time.Time      `gorm:"column:updated_at"`
+		CreatedAt sql.NullTime   `gorm:"column:created_at"`
+		UpdatedAt sql.NullTime   `gorm:"column:updated_at"`
 		DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index"`
 	}
 )
@@ -46,9 +47,9 @@ func (Users) TableName() string {
 	return "`users`"
 }
 
-func newUsersModel(conn *gorm.DB) *defaultUsersModel {
+func newUsersModel(db *gorm.DB) *defaultUsersModel {
 	return &defaultUsersModel{
-		conn:  conn,
+		Conn:  conn.NewConn(db),
 		table: "`users`",
 	}
 }
@@ -62,11 +63,21 @@ func (m *defaultUsersModel) Insert(ctx context.Context, tx *gorm.DB, data *Users
 	return err
 }
 func (m *defaultUsersModel) BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error {
-	db := m.conn
-	if tx != nil {
-		db = tx
-	}
-	err := db.Create(&news).Error
+	//db := m.conn
+	//if tx != nil {
+	//	db = tx
+	//}
+	//err := db.Create(&news).Error
+
+	err := batchx.BatchNoCacheExecCtx(ctx, m, func(conn *gorm.DB) error {
+		db := conn
+		for _, v := range news {
+			if err := db.Create(&v).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}, tx)
 	return err
 }
 

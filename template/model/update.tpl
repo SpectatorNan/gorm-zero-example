@@ -23,12 +23,14 @@ func (m *default{{.upperStartCamelObject}}Model) BatchUpdate(ctx context.Context
     clearData = append(clearData, olds...)
     clearData = append(clearData, news...)
     err := batchx.BatchExecCtx(ctx, m, clearData, func(conn *gorm.DB) error {
-            db := conn
-            if tx != nil {
-                db = tx
-            }
-            return db.Save(&news).Error
-        })
+db := conn
+		for _, v := range news {
+			if err := db.Save(&v).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+        }, tx)
     {{else}}db := m.conn
         if tx != nil {
             db = tx

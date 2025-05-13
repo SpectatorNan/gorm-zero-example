@@ -40,13 +40,31 @@ type (
 service User {
 	@handler queryUser
 	get /users/id/:id (QueryUserReq) returns (QueryUserResp)
-	
+
 	@handler addUser
 	post /users/add (AddUserReq) returns (AddUserResp)
-	
+
 	@handler updateUser
 	post /users/update (UpdateUserReq)
-	
+
 	@handler delUser
+	post /users/del (DeleteUserReq)
+}
+
+@server (
+	group: nocache
+	prefix: /nocache
+)
+service User {
+	@handler nocacheQueryUser
+	get /users/id/:id (QueryUserReq) returns (QueryUserResp)
+
+	@handler nocacheAddUser
+	post /users/add (AddUserReq) returns (AddUserResp)
+
+	@handler nocacheUpdateUser
+	post /users/update (UpdateUserReq)
+
+	@handler nocacheDelUser
 	post /users/del (DeleteUserReq)
 }

@@ -1,4 +1,4 @@
-package logic
+package nocache
 
 import (
 	"context"
@@ -13,23 +13,22 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type QueryUserLogic struct {
+type NocacheQueryUserLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewQueryUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) QueryUserLogic {
-	return QueryUserLogic{
+func NewNocacheQueryUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *NocacheQueryUserLogic {
+	return &NocacheQueryUserLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *QueryUserLogic) QueryUser(req types.QueryUserReq) (resp *types.QueryUserResp, err error) {
-
-	user, err := l.svcCtx.UserCacheModel.FindOneWithExpire(l.ctx, req.Id, time.Minute*3)
+func (l *NocacheQueryUserLogic) NocacheQueryUser(req *types.QueryUserReq) (resp *types.QueryUserResp, err error) {
+	user, err := l.svcCtx.UserNoCacheModel.FindOne(l.ctx, req.Id)
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			return nil, errorx.NewDefaultError("用户不存在")

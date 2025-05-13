@@ -6,10 +6,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/SpectatorNan/gorm-zero/gormc/cacheConn"
 
 	"database/sql"
-
 	"github.com/SpectatorNan/gorm-zero/gormc"
+	"github.com/SpectatorNan/gorm-zero/gormc/batchx"
+	"github.com/SpectatorNan/gorm-zero/gormc/pagex"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"gorm.io/gorm"
 )
@@ -21,12 +23,15 @@ var (
 type (
 	usersModel interface {
 		Insert(ctx context.Context, tx *gorm.DB, data *Users) error
-
+		BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error
 		FindOne(ctx context.Context, id int64) (*Users, error)
+		FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
+			orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]Users, int64, error)
 		Update(ctx context.Context, tx *gorm.DB, data *Users) error
+		BatchUpdate(ctx context.Context, tx *gorm.DB, olds, news []Users) error
+		BatchDelete(ctx context.Context, tx *gorm.DB, datas []Users) error
 
 		Delete(ctx context.Context, tx *gorm.DB, id int64) error
-		Transaction(ctx context.Context, fn func(db *gorm.DB) error) error
 	}
 
 	defaultUsersModel struct {
@@ -35,13 +40,13 @@ type (
 	}
 
 	Users struct {
-		Id       int64          `gorm:"column:id"`
-		Account  sql.NullString `gorm:"column:account"`
-		NickName sql.NullString `gorm:"column:nick_name"`
-		Password sql.NullString `gorm:"column:password"`
-		CreateAt sql.NullTime   `gorm:"column:create_at"`
-		UpdateAt sql.NullTime   `gorm:"column:update_at"`
-		DeleteAt sql.NullTime   `gorm:"column:delete_at"`
+		Id        int64          `gorm:"column:id;primary_key"`
+		Account   sql.NullString `gorm:"column:account"`
+		NickName  sql.NullString `gorm:"column:nick_name"`
+		Password  sql.NullString `gorm:"column:password"`
+		CreatedAt sql.NullTime   `gorm:"column:created_at"`
+		UpdatedAt sql.NullTime   `gorm:"column:updated_at"`
+		DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index"`
 	}
 )
 
@@ -51,9 +56,21 @@ func (Users) TableName() string {
 
 func newUsersModel(conn *gorm.DB, c cache.CacheConf) *defaultUsersModel {
 	return &defaultUsersModel{
-		CachedConn: gormc.NewConn(conn, c),
+		CachedConn: cacheConn.NewConn(conn, c),
 		table:      "`users`",
 	}
+}
+
+func (m *defaultUsersModel) GetCacheKeys(data *Users) []string {
+	if data == nil {
+		return []string{}
+	}
+	gormzeroUsersIdKey := fmt.Sprintf("%s%v", cacheGormzeroUsersIdPrefix, data.Id)
+	cacheKeys := []string{
+		gormzeroUsersIdKey,
+	}
+	cacheKeys = append(cacheKeys, m.customCacheKeys(data)...)
+	return cacheKeys
 }
 
 func (m *defaultUsersModel) Insert(ctx context.Context, tx *gorm.DB, data *Users) error {
@@ -63,8 +80,21 @@ func (m *defaultUsersModel) Insert(ctx context.Context, tx *gorm.DB, data *Users
 		if tx != nil {
 			db = tx
 		}
-		return db.Save(&data).Error
-	}, m.getCacheKeys(data)...)
+		return db.Create(&data).Error
+	}, m.GetCacheKeys(data)...)
+	return err
+}
+func (m *defaultUsersModel) BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error {
+
+	err := batchx.BatchExecCtx(ctx, m, news, func(conn *gorm.DB) error {
+		db := conn
+		for _, v := range news {
+			if err := db.Create(&v).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}, tx)
 	return err
 }
 
@@ -83,38 +113,55 @@ func (m *defaultUsersModel) FindOne(ctx context.Context, id int64) (*Users, erro
 		return nil, err
 	}
 }
+func (m *defaultUsersModel) FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
+	orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]Users, int64, error) {
+	formatDB := func(conn *gorm.DB) (*gorm.DB, *gorm.DB) {
+		db := conn.Model(&Users{})
+		if whereClause != nil {
+			db = whereClause(db)
+		}
+		return db, nil
+	}
+	res, total, err := pagex.FindPageList[Users](ctx, m, page, orderBy, orderKeys, formatDB)
+	return res, total, err
+}
 
 func (m *defaultUsersModel) Update(ctx context.Context, tx *gorm.DB, data *Users) error {
 	old, err := m.FindOne(ctx, data.Id)
 	if err != nil && errors.Is(err, ErrNotFound) {
 		return err
 	}
+	clearKeys := append(m.GetCacheKeys(old), m.GetCacheKeys(data)...)
 	err = m.ExecCtx(ctx, func(conn *gorm.DB) error {
 		db := conn
 		if tx != nil {
 			db = tx
 		}
 		return db.Save(data).Error
-	}, m.getCacheKeys(old)...)
+	}, clearKeys...)
 	return err
 }
+func (m *defaultUsersModel) BatchUpdate(ctx context.Context, tx *gorm.DB, olds, news []Users) error {
+	clearData := make([]Users, 0, len(olds)+len(news))
+	clearData = append(clearData, olds...)
+	clearData = append(clearData, news...)
+	err := batchx.BatchExecCtx(ctx, m, clearData, func(conn *gorm.DB) error {
+		db := conn
+		for _, v := range news {
+			if err := db.Save(&v).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}, tx)
 
-func (m *defaultUsersModel) getCacheKeys(data *Users) []string {
-	if data == nil {
-		return []string{}
-	}
-	gormzeroUsersIdKey := fmt.Sprintf("%s%v", cacheGormzeroUsersIdPrefix, data.Id)
-	cacheKeys := []string{
-		gormzeroUsersIdKey,
-	}
-	cacheKeys = append(cacheKeys, m.customCacheKeys(data)...)
-	return cacheKeys
+	return err
 }
 
 func (m *defaultUsersModel) Delete(ctx context.Context, tx *gorm.DB, id int64) error {
 	data, err := m.FindOne(ctx, id)
 	if err != nil {
-		if err == ErrNotFound {
+		if errors.Is(err, ErrNotFound) {
 			return nil
 		}
 		return err
@@ -125,12 +172,21 @@ func (m *defaultUsersModel) Delete(ctx context.Context, tx *gorm.DB, id int64) e
 			db = tx
 		}
 		return db.Delete(&Users{}, id).Error
-	}, m.getCacheKeys(data)...)
+	}, m.GetCacheKeys(data)...)
 	return err
 }
 
-func (m *defaultUsersModel) Transaction(ctx context.Context, fn func(db *gorm.DB) error) error {
-	return m.TransactCtx(ctx, fn)
+func (m *defaultUsersModel) BatchDelete(ctx context.Context, tx *gorm.DB, datas []Users) error {
+	err := batchx.BatchExecCtx(ctx, m, datas, func(conn *gorm.DB) error {
+		db := conn
+		for _, v := range datas {
+			if err := db.Delete(&v).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}, tx)
+	return err
 }
 
 func (m *defaultUsersModel) formatPrimary(primary interface{}) string {

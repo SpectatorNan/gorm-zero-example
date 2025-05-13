@@ -31,11 +31,13 @@ func (m *default{{.upperStartCamelObject}}Model) BatchInsert(ctx context.Context
 	{{if .withCache}}
     err := batchx.BatchExecCtx(ctx, m, news, func(conn *gorm.DB) error {
     db := conn
-            if tx != nil {
-                db = tx
-            }
-            return db.Create(&news).Error
-    	}){{else}}db := m.conn
+    		for _, v := range news {
+    			if err := db.Create(&v).Error; err != nil {
+    				return err
+    			}
+    		}
+    		return nil
+    	},tx){{else}}db := m.conn
         if tx != nil {
             db = tx
         }
