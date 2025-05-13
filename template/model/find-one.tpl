@@ -1,28 +1,24 @@
 
 func (m *default{{.upperStartCamelObject}}Model) FindOne(ctx context.Context, {{.lowerStartCamelPrimaryKey}} {{.dataType}}) (*{{.upperStartCamelObject}}, error) {
+	 formatDB := func(conn *gorm.DB) *gorm.DB {
+	    return  conn.Model(&{{.upperStartCamelObject}}{}).Where("{{.originalPrimaryKey}} = ?", {{.lowerStartCamelPrimaryKey}})
+	 }
+	 var resp {{.upperStartCamelObject}}
 	{{if .withCache}}{{.cacheKey}}
-	var resp {{.upperStartCamelObject}}
 	err := m.QueryCtx(ctx, &resp, {{.cacheKeyVariable}}, func(conn *gorm.DB) error {
-    		return conn.Model(&{{.upperStartCamelObject}}{}).Where("{{.originalPrimaryKey}} = ?", {{.lowerStartCamelPrimaryKey}}).First(&resp).Error
+    		return formatDB(conn).First(&resp).Error
     	})
-	switch err {
-	case nil:
-		return &resp, nil
-	case gormc.ErrNotFound:
-		return nil, ErrNotFound
-	default:
-		return nil, err
-	}{{else}}var resp {{.upperStartCamelObject}}
-	err := m.conn.WithContext(ctx).Model(&{{.upperStartCamelObject}}{}).Where("{{.originalPrimaryKey}} = ?", {{.lowerStartCamelPrimaryKey}}).Take(&resp).Error
-	switch err {
-	case nil:
-		return &resp, nil
-	case gormc.ErrNotFound:
-		return nil, ErrNotFound
-	default:
-		return nil, err
-	}{{end}}
+	 {{else}}
+	err := m.conn.ExecCtx(ctx, func(conn *gorm.DB) error {
+    		return formatDB(conn).Take(&resp).Error
+    	})
+	 {{end}}
+	 if err != nil {
+     		return nil, err
+     	}
+     	return &resp, nil
 }
+
 func (m *default{{.upperStartCamelObject}}Model) FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
 	orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]{{.upperStartCamelObject}}, int64, error) {
 	{{if .withCache}}formatDB := func(conn *gorm.DB) (*gorm.DB, *gorm.DB) {

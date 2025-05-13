@@ -6,12 +6,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/SpectatorNan/gorm-zero/gormc/cacheConn"
 
 	"database/sql"
+	"github.com/SpectatorNan/gorm-zero/batchx"
 	"github.com/SpectatorNan/gorm-zero/gormc"
-	"github.com/SpectatorNan/gorm-zero/gormc/batchx"
-	"github.com/SpectatorNan/gorm-zero/gormc/pagex"
+	"github.com/SpectatorNan/gorm-zero/pagex"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"gorm.io/gorm"
 )
@@ -54,9 +53,9 @@ func (Users) TableName() string {
 	return "`users`"
 }
 
-func newUsersModel(conn *gorm.DB, c cache.CacheConf) *defaultUsersModel {
+func newUsersModel(db *gorm.DB, c cache.CacheConf) *defaultUsersModel {
 	return &defaultUsersModel{
-		CachedConn: cacheConn.NewConn(conn, c),
+		CachedConn: gormc.NewConn(db, c),
 		table:      "`users`",
 	}
 }
@@ -74,16 +73,18 @@ func (m *defaultUsersModel) GetCacheKeys(data *Users) []string {
 }
 
 func (m *defaultUsersModel) Insert(ctx context.Context, tx *gorm.DB, data *Users) error {
-
-	err := m.ExecCtx(ctx, func(conn *gorm.DB) error {
+	execFn := func(conn *gorm.DB) error {
 		db := conn
 		if tx != nil {
 			db = tx
 		}
 		return db.Create(&data).Error
-	}, m.GetCacheKeys(data)...)
-	return err
+	}
+
+	return m.ExecCtx(ctx, execFn, m.GetCacheKeys(data)...)
+
 }
+
 func (m *defaultUsersModel) BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error {
 
 	err := batchx.BatchExecCtx(ctx, m, news, func(conn *gorm.DB) error {
@@ -99,20 +100,21 @@ func (m *defaultUsersModel) BatchInsert(ctx context.Context, tx *gorm.DB, news [
 }
 
 func (m *defaultUsersModel) FindOne(ctx context.Context, id int64) (*Users, error) {
-	gormzeroUsersIdKey := fmt.Sprintf("%s%v", cacheGormzeroUsersIdPrefix, id)
+	formatDB := func(conn *gorm.DB) *gorm.DB {
+		return conn.Model(&Users{}).Where("`id` = ?", id)
+	}
 	var resp Users
+	gormzeroUsersIdKey := fmt.Sprintf("%s%v", cacheGormzeroUsersIdPrefix, id)
 	err := m.QueryCtx(ctx, &resp, gormzeroUsersIdKey, func(conn *gorm.DB) error {
-		return conn.Model(&Users{}).Where("`id` = ?", id).First(&resp).Error
+		return formatDB(conn).First(&resp).Error
 	})
-	switch err {
-	case nil:
-		return &resp, nil
-	case gormc.ErrNotFound:
-		return nil, ErrNotFound
-	default:
+
+	if err != nil {
 		return nil, err
 	}
+	return &resp, nil
 }
+
 func (m *defaultUsersModel) FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
 	orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]Users, int64, error) {
 	formatDB := func(conn *gorm.DB) (*gorm.DB, *gorm.DB) {

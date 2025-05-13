@@ -13,12 +13,13 @@ func (m *default{{.upperStartCamelObject}}Model) Delete(ctx context.Context, tx 
             db = tx
         }
         return db.Delete(&{{.upperStartCamelObject}}{}, {{.lowerStartCamelPrimaryKey}}).Error
-	}, m.GetCacheKeys(data)...){{else}} db := m.conn
-        if tx != nil {
-            db = tx
-        }
-        err:= db.WithContext(ctx).Delete(&{{.upperStartCamelObject}}{}, {{.lowerStartCamelPrimaryKey}}).Error
-	{{end}}
+	}, m.GetCacheKeys(data)...){{else}}err := m.conn.ExecCtx(ctx, func(conn *gorm.DB) error {
+                                                                   		db := conn
+                                                                   		if tx != nil {
+                                                                   			db = tx
+                                                                   		}
+                                                                   		return db.Delete(&{{.upperStartCamelObject}}{}, {{.lowerStartCamelPrimaryKey}}).Error
+                                                                   	}){{end}}
 	return err
 }
 
@@ -31,11 +32,14 @@ db := conn
 			}
 		}
 		return nil
-    	},tx){{else}}db := m.conn
-        if tx != nil {
-            db = tx
-        }
-        err := db.Delete(&datas).Error{{end}}
+    	},tx){{else}}err := batchx.BatchNoCacheExecCtx[{{.upperStartCamelObject}}](ctx, m.conn, func(db *gorm.DB) error {
+                                 		for _, data := range datas {
+                                 			if err := db.Delete(&data).Error; err != nil {
+                                 				return err
+                                 			}
+                                 		}
+                                 		return nil
+                                 	}, tx){{end}}
 	return err
 }
 

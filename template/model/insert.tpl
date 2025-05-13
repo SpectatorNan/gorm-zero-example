@@ -13,20 +13,20 @@ func (m *default{{.upperStartCamelObject}}Model) GetCacheKeys(data *{{.upperStar
 {{end}}
 
 func (m *default{{.upperStartCamelObject}}Model) Insert(ctx context.Context, tx *gorm.DB, data *{{.upperStartCamelObject}}) error {
-	{{if .withCache}}
-    err := m.ExecCtx(ctx, func(conn *gorm.DB) error {
-		db := conn
+    execFn := func(conn *gorm.DB) error {
+        db := conn
         if tx != nil {
             db = tx
         }
         return db.Create(&data).Error
-	}, m.GetCacheKeys(data)...){{else}}db := m.conn
-        if tx != nil {
-            db = tx
-        }
-        err := db.WithContext(ctx).Create(&data).Error{{end}}
-	return err
+    }
+    {{if .withCache}}
+    return m.ExecCtx(ctx, execFn, m.GetCacheKeys(data)...)
+    {{else}}
+    return m.conn.ExecCtx(ctx, execFn)
+    {{end}}
 }
+
 func (m *default{{.upperStartCamelObject}}Model) BatchInsert(ctx context.Context, tx *gorm.DB, news []{{.upperStartCamelObject}}) error {
 	{{if .withCache}}
     err := batchx.BatchExecCtx(ctx, m, news, func(conn *gorm.DB) error {
@@ -37,10 +37,13 @@ func (m *default{{.upperStartCamelObject}}Model) BatchInsert(ctx context.Context
     			}
     		}
     		return nil
-    	},tx){{else}}db := m.conn
-        if tx != nil {
-            db = tx
-        }
-        err := db.Create(&news).Error{{end}}
+    	},tx){{else}}err := batchx.BatchNoCacheExecCtx[{{.upperStartCamelObject}}](ctx, m.conn, func(db *gorm.DB) error {
+                     			for _, data := range news {
+                     				if err := db.Create(&data).Error; err != nil {
+                     					return err
+                     				}
+                     			}
+                     			return nil
+                     	}, tx){{end}}
 	return err
 }

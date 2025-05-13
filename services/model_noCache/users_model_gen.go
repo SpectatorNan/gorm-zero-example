@@ -5,11 +5,10 @@ package model_noCache
 import (
 	"context"
 	"database/sql"
-	"github.com/SpectatorNan/gorm-zero/gormc"
-	"github.com/SpectatorNan/gorm-zero/gormc/batchx"
-	"github.com/SpectatorNan/gorm-zero/gormc/conn"
+	"github.com/SpectatorNan/gorm-zero/gormx"
 
-	"github.com/SpectatorNan/gorm-zero/gormc/pagex"
+	"github.com/SpectatorNan/gorm-zero/batchx"
+	"github.com/SpectatorNan/gorm-zero/pagex"
 	"gorm.io/gorm"
 )
 
@@ -28,7 +27,7 @@ type (
 	}
 
 	defaultUsersModel struct {
-		gormc.Conn
+		conn  gormx.Conn
 		table string
 	}
 
@@ -49,30 +48,28 @@ func (Users) TableName() string {
 
 func newUsersModel(db *gorm.DB) *defaultUsersModel {
 	return &defaultUsersModel{
-		Conn:  conn.NewConn(db),
+		conn:  gormx.NewConn(db),
 		table: "`users`",
 	}
 }
 
 func (m *defaultUsersModel) Insert(ctx context.Context, tx *gorm.DB, data *Users) error {
-	db := m.conn
-	if tx != nil {
-		db = tx
-	}
-	err := db.WithContext(ctx).Create(&data).Error
-	return err
-}
-func (m *defaultUsersModel) BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error {
-	//db := m.conn
-	//if tx != nil {
-	//	db = tx
-	//}
-	//err := db.Create(&news).Error
-
-	err := batchx.BatchNoCacheExecCtx(ctx, m, func(conn *gorm.DB) error {
+	execFn := func(conn *gorm.DB) error {
 		db := conn
-		for _, v := range news {
-			if err := db.Create(&v).Error; err != nil {
+		if tx != nil {
+			db = tx
+		}
+		return db.Create(&data).Error
+	}
+
+	return m.conn.ExecCtx(ctx, execFn)
+
+}
+
+func (m *defaultUsersModel) BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error {
+	err := batchx.BatchNoCacheExecCtx[Users](ctx, m.conn, func(db *gorm.DB) error {
+		for _, data := range news {
+			if err := db.Create(&data).Error; err != nil {
 				return err
 			}
 		}
@@ -82,17 +79,21 @@ func (m *defaultUsersModel) BatchInsert(ctx context.Context, tx *gorm.DB, news [
 }
 
 func (m *defaultUsersModel) FindOne(ctx context.Context, id int64) (*Users, error) {
+	formatDB := func(conn *gorm.DB) *gorm.DB {
+		return conn.Model(&Users{}).Where("`id` = ?", id)
+	}
 	var resp Users
-	err := m.conn.WithContext(ctx).Model(&Users{}).Where("`id` = ?", id).Take(&resp).Error
-	switch err {
-	case nil:
-		return &resp, nil
-	case gormc.ErrNotFound:
-		return nil, ErrNotFound
-	default:
+
+	err := m.conn.ExecCtx(ctx, func(conn *gorm.DB) error {
+		return formatDB(conn).Take(&resp).Error
+	})
+
+	if err != nil {
 		return nil, err
 	}
+	return &resp, nil
 }
+
 func (m *defaultUsersModel) FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
 	orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]Users, int64, error) {
 	conn := m.conn
@@ -109,38 +110,47 @@ func (m *defaultUsersModel) FindPageList(ctx context.Context, page *pagex.ListRe
 }
 
 func (m *defaultUsersModel) Update(ctx context.Context, tx *gorm.DB, data *Users) error {
-	db := m.conn
-	if tx != nil {
-		db = tx
-	}
-	err := db.WithContext(ctx).Save(data).Error
+	err := m.conn.ExecCtx(ctx, func(conn *gorm.DB) error {
+		db := conn
+		if tx != nil {
+			db = tx
+		}
+		return db.Save(data).Error
+	})
 	return err
 }
 func (m *defaultUsersModel) BatchUpdate(ctx context.Context, tx *gorm.DB, olds, news []Users) error {
-	db := m.conn
-	if tx != nil {
-		db = tx
-	}
-	err := db.WithContext(ctx).Save(&news).Error
+	err := batchx.BatchNoCacheExecCtx[Users](ctx, m.conn, func(db *gorm.DB) error {
+		for _, data := range news {
+			if err := db.Save(&data).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}, tx)
 
 	return err
 }
 
 func (m *defaultUsersModel) Delete(ctx context.Context, tx *gorm.DB, id int64) error {
-	db := m.conn
-	if tx != nil {
-		db = tx
-	}
-	err := db.WithContext(ctx).Delete(&Users{}, id).Error
-
+	err := m.conn.ExecCtx(ctx, func(conn *gorm.DB) error {
+		db := conn
+		if tx != nil {
+			db = tx
+		}
+		return db.Delete(&Users{}, id).Error
+	})
 	return err
 }
 
 func (m *defaultUsersModel) BatchDelete(ctx context.Context, tx *gorm.DB, datas []Users) error {
-	db := m.conn
-	if tx != nil {
-		db = tx
-	}
-	err := db.Delete(&datas).Error
+	err := batchx.BatchNoCacheExecCtx[Users](ctx, m.conn, func(db *gorm.DB) error {
+		for _, data := range datas {
+			if err := db.Delete(&data).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}, tx)
 	return err
 }

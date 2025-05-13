@@ -11,11 +11,13 @@ func (m *default{{.upperStartCamelObject}}Model) Update(ctx context.Context, tx 
             db = tx
         }
         return db.Save(data).Error
-    }, clearKeys...){{else}}db := m.conn
-        if tx != nil {
-            db = tx
-        }
-        err:= db.WithContext(ctx).Save(data).Error{{end}}
+    }, clearKeys...){{else}}err := m.conn.ExecCtx(ctx, func(conn *gorm.DB) error {
+                            		db := conn
+                            		if tx != nil {
+                            			db = tx
+                            		}
+                            		return db.Save(data).Error
+                            	}) {{end}}
     return err
 }
 func (m *default{{.upperStartCamelObject}}Model) BatchUpdate(ctx context.Context, tx *gorm.DB, olds, news []{{.upperStartCamelObject}}) error {
@@ -31,11 +33,14 @@ db := conn
 		}
 		return nil
         }, tx)
-    {{else}}db := m.conn
-        if tx != nil {
-            db = tx
-        }
-        err:= db.WithContext(ctx).Save(&news).Error
+    {{else}}err := batchx.BatchNoCacheExecCtx[{{.upperStartCamelObject}}](ctx, m.conn, func(db *gorm.DB) error {
+            		for _, data := range news {
+            			if err := db.Save(&data).Error; err != nil {
+            				return err
+            			}
+            		}
+            		return nil
+            	}, tx)
      {{end}}
     return err
 }

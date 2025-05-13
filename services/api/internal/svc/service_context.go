@@ -1,7 +1,7 @@
 package svc
 
 import (
-	"github.com/SpectatorNan/gorm-zero/gormc/config/mysql"
+	"github.com/SpectatorNan/gorm-zero/config/mysql"
 	"gorm-zero-example/services/api/internal/config"
 	"gorm-zero-example/services/model"
 	"gorm-zero-example/services/model_noCache"
