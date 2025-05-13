@@ -6,8 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"github.com/SpectatorNan/gorm-zero/gormc"
-	"github.com/SpectatorNan/gorm-zero/gormc/batchx"
-	"github.com/SpectatorNan/gorm-zero/gormc/conn"
 
 	"github.com/SpectatorNan/gorm-zero/gormc/pagex"
 	"gorm.io/gorm"
@@ -28,7 +26,7 @@ type (
 	}
 
 	defaultUsersModel struct {
-		gormc.Conn
+		conn  *gorm.DB
 		table string
 	}
 
@@ -49,7 +47,7 @@ func (Users) TableName() string {
 
 func newUsersModel(db *gorm.DB) *defaultUsersModel {
 	return &defaultUsersModel{
-		Conn:  conn.NewConn(db),
+		conn:  db,
 		table: "`users`",
 	}
 }
@@ -63,21 +61,11 @@ func (m *defaultUsersModel) Insert(ctx context.Context, tx *gorm.DB, data *Users
 	return err
 }
 func (m *defaultUsersModel) BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error {
-	//db := m.conn
-	//if tx != nil {
-	//	db = tx
-	//}
-	//err := db.Create(&news).Error
-
-	err := batchx.BatchNoCacheExecCtx(ctx, m, func(conn *gorm.DB) error {
-		db := conn
-		for _, v := range news {
-			if err := db.Create(&v).Error; err != nil {
-				return err
-			}
-		}
-		return nil
-	}, tx)
+	db := m.conn
+	if tx != nil {
+		db = tx
+	}
+	err := db.Create(&news).Error
 	return err
 }
 

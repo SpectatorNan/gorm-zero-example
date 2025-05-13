@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/SpectatorNan/gorm-zero/gormc/cacheConn"
 
 	"database/sql"
 	"github.com/SpectatorNan/gorm-zero/gormc"
@@ -54,9 +53,9 @@ func (Users) TableName() string {
 	return "`users`"
 }
 
-func newUsersModel(conn *gorm.DB, c cache.CacheConf) *defaultUsersModel {
+func newUsersModel(db *gorm.DB, c cache.CacheConf) *defaultUsersModel {
 	return &defaultUsersModel{
-		CachedConn: cacheConn.NewConn(conn, c),
+		CachedConn: gormc.NewConn(db, c),
 		table:      "`users`",
 	}
 }
