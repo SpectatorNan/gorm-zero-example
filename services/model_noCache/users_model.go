@@ -1,6 +1,7 @@
 package model_noCache
 
 import (
+	"database/sql"
 	"gorm.io/gorm"
 	"time"
 )
@@ -26,14 +27,14 @@ type (
 // BeforeCreate hook create time
 func (s *Users) BeforeCreate(tx *gorm.DB) error {
 	now := time.Now()
-	s.CreatedAt = now
-	s.UpdatedAt = now
+	s.CreatedAt = sql.NullTime{Time: now, Valid: true}
+	s.UpdatedAt = sql.NullTime{Time: now, Valid: true}
 	return nil
 }
 
 // BeforeUpdate hook update time
 func (s *Users) BeforeUpdate(tx *gorm.DB) error {
-	s.UpdatedAt = time.Now()
+	s.UpdatedAt = sql.NullTime{Time: time.Now(), Valid: true}
 	return nil
 }
 

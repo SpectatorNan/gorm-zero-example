@@ -6,7 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"github.com/SpectatorNan/gorm-zero/gormc"
-	"time"
 
 	"github.com/SpectatorNan/gorm-zero/gormc/pagex"
 	"gorm.io/gorm"
@@ -36,8 +35,8 @@ type (
 		Account   sql.NullString `gorm:"column:account"`
 		NickName  sql.NullString `gorm:"column:nick_name"`
 		Password  sql.NullString `gorm:"column:password"`
-		CreatedAt time.Time      `gorm:"column:created_at"`
-		UpdatedAt time.Time      `gorm:"column:updated_at"`
+		CreatedAt sql.NullTime   `gorm:"column:created_at"`
+		UpdatedAt sql.NullTime   `gorm:"column:updated_at"`
 		DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index"`
 	}
 )
@@ -46,9 +45,9 @@ func (Users) TableName() string {
 	return "`users`"
 }
 
-func newUsersModel(conn *gorm.DB) *defaultUsersModel {
+func newUsersModel(db *gorm.DB) *defaultUsersModel {
 	return &defaultUsersModel{
-		conn:  conn,
+		conn:  db,
 		table: "`users`",
 	}
 }

@@ -25,9 +25,8 @@ func NewUpdateUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) UpdateU
 }
 
 func (l *UpdateUserLogic) UpdateUser(req types.UpdateUserReq) error {
-	// todo: add your logic here and delete this line
 
-	u, err := l.svcCtx.UserModel.FindOne(l.ctx, req.Id)
+	u, err := l.svcCtx.UserCacheModel.FindOne(l.ctx, req.Id)
 	if err != nil {
 		return err
 	}
@@ -36,7 +35,7 @@ func (l *UpdateUserLogic) UpdateUser(req types.UpdateUserReq) error {
 		Valid:  true,
 	}
 
-	err = l.svcCtx.UserModel.Update(l.ctx, nil, u)
+	err = l.svcCtx.UserCacheModel.Update(l.ctx, nil, u)
 
 	return err
 }

@@ -1,32 +1,33 @@
-package logic
+package nocache
 
 import (
 	"context"
 	"database/sql"
+	"gorm-zero-example/services/model_noCache"
+
 	"gorm-zero-example/services/api/internal/svc"
 	"gorm-zero-example/services/api/internal/types"
-	"gorm-zero-example/services/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type AddUserLogic struct {
+type NocacheAddUserLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAddUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) AddUserLogic {
-	return AddUserLogic{
+func NewNocacheAddUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *NocacheAddUserLogic {
+	return &NocacheAddUserLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AddUserLogic) AddUser(req types.AddUserReq) (resp *types.AddUserResp, err error) {
+func (l *NocacheAddUserLogic) NocacheAddUser(req *types.AddUserReq) (resp *types.AddUserResp, err error) {
 
-	u := model.Users{
+	u := model_noCache.Users{
 		Account: sql.NullString{
 			String: req.Account,
 			Valid:  true,
@@ -41,7 +42,7 @@ func (l *AddUserLogic) AddUser(req types.AddUserReq) (resp *types.AddUserResp, e
 		},
 	}
 
-	err = l.svcCtx.UserCacheModel.Insert(l.ctx, nil, &u)
+	err = l.svcCtx.UserNoCacheModel.Insert(l.ctx, nil, &u)
 	if err != nil {
 		return nil, err
 	}
