@@ -3,7 +3,7 @@ module gorm-zero-example
 go 1.23.0
 
 require (
-	github.com/SpectatorNan/gorm-zero v1.5.2
+	github.com/SpectatorNan/gorm-zero v1.7.0
 	github.com/zeromicro/go-zero v1.8.1
 	google.golang.org/grpc v1.69.2
 	gorm.io/gorm v1.26.1
@@ -59,4 +59,4 @@ require (
 	gorm.io/driver/mysql v1.5.7 // indirect
 )
 
-replace github.com/SpectatorNan/gorm-zero v1.5.2 => ../gorm-zero
+//replace github.com/SpectatorNan/gorm-zero v1.5.2 => ../gorm-zero

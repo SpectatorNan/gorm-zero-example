@@ -85,7 +85,7 @@ func (m *defaultUsersModel) Insert(ctx context.Context, tx *gorm.DB, data *Users
 }
 func (m *defaultUsersModel) BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error {
 
-	err := batchx.BatchExecCtx(ctx, m, news, func(conn *gorm.DB) error {
+	err := batchx.BatchExecCtxV2(ctx, m, news, func(conn *gorm.DB) error {
 		db := conn
 		for _, v := range news {
 			if err := db.Create(&v).Error; err != nil {
@@ -144,7 +144,7 @@ func (m *defaultUsersModel) BatchUpdate(ctx context.Context, tx *gorm.DB, olds, 
 	clearData := make([]Users, 0, len(olds)+len(news))
 	clearData = append(clearData, olds...)
 	clearData = append(clearData, news...)
-	err := batchx.BatchExecCtx(ctx, m, clearData, func(conn *gorm.DB) error {
+	err := batchx.BatchExecCtxV2(ctx, m, clearData, func(conn *gorm.DB) error {
 		db := conn
 		for _, v := range news {
 			if err := db.Save(&v).Error; err != nil {
@@ -176,7 +176,7 @@ func (m *defaultUsersModel) Delete(ctx context.Context, tx *gorm.DB, id int64) e
 }
 
 func (m *defaultUsersModel) BatchDelete(ctx context.Context, tx *gorm.DB, datas []Users) error {
-	err := batchx.BatchExecCtx(ctx, m, datas, func(conn *gorm.DB) error {
+	err := batchx.BatchExecCtxV2(ctx, m, datas, func(conn *gorm.DB) error {
 		db := conn
 		for _, v := range datas {
 			if err := db.Delete(&v).Error; err != nil {
