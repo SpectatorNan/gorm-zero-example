@@ -21,6 +21,8 @@ require (
 	github.com/go-sql-driver/mysql v1.9.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/grafana/pyroscope-go v1.2.2 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -59,4 +61,4 @@ require (
 	gorm.io/driver/mysql v1.5.7 // indirect
 )
 
-//replace github.com/SpectatorNan/gorm-zero v1.5.2 => ../gorm-zero
+replace github.com/SpectatorNan/gorm-zero v1.7.0 => ../gorm-zero

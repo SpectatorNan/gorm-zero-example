@@ -16,7 +16,7 @@ type (
 		Insert(ctx context.Context, tx *gorm.DB, data *Users) error
 		BatchInsert(ctx context.Context, tx *gorm.DB, news []Users) error
 		FindOne(ctx context.Context, id int64) (*Users, error)
-		FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
+		FindPageList(ctx context.Context, page *pagex.ListReq, orderBys []pagex.OrderBy,
 			orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]Users, int64, error)
 		Update(ctx context.Context, tx *gorm.DB, data *Users) error
 		BatchUpdate(ctx context.Context, tx *gorm.DB, olds, news []Users) error
@@ -81,7 +81,7 @@ func (m *defaultUsersModel) FindOne(ctx context.Context, id int64) (*Users, erro
 		return nil, err
 	}
 }
-func (m *defaultUsersModel) FindPageList(ctx context.Context, page *pagex.ListReq, orderBy pagex.OrderBy,
+func (m *defaultUsersModel) FindPageList(ctx context.Context, page *pagex.ListReq, orderBys []pagex.OrderBy,
 	orderKeys map[string]string, whereClause func(db *gorm.DB) *gorm.DB) ([]Users, int64, error) {
 	conn := m.conn
 	formatDB := func() (*gorm.DB, *gorm.DB) {
@@ -92,7 +92,7 @@ func (m *defaultUsersModel) FindPageList(ctx context.Context, page *pagex.ListRe
 		return db, nil
 	}
 
-	res, total, err := pagex.FindPageListWithCount[Users](ctx, page, orderBy, orderKeys, formatDB)
+	res, total, err := pagex.FindPageListWithCountMultiOrderBy[Users](ctx, page, orderBys, orderKeys, formatDB)
 	return res, total, err
 }
 
